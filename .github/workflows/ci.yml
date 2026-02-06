@@ -1,0 +1,130 @@
+# Continuous Integration Workflow
+# Runs linting, type checking, and security scans on Python code
+
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+      - main
+    paths:
+      - "python/**"
+      - ".github/**"
+      - "requirements*.txt"
+  pull_request:
+    branches:
+      - master
+      - main
+    paths:
+      - "python/**"
+      - ".github/**"
+      - "requirements*.txt"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+        with:
+          python-version: "3.12"
+
+      - name: Run Ruff linter
+        run: ruff check python/ --output-format=github
+
+      - name: Run Ruff formatter check
+        run: ruff format python/ --check --diff
+
+  type-check:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+        with:
+          python-version: "3.12"
+
+      - name: Run mypy
+        run: mypy python/ --ignore-missing-imports
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+        with:
+          python-version: "3.12"
+
+      - name: Run Bandit security scanner
+        run: bandit -r python/ -ll --format json --output bandit-report.json || true
+
+      - name: Display security findings
+        if: always()
+        run: |
+          if [ -f bandit-report.json ]; then
+            python -m json.tool bandit-report.json
+          fi
+
+  syntax-check:
+    name: Syntax Check (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.10"
+          - "3.11"
+          - "3.12"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+        with:
+          python-version: ${{ matrix.python-version }}
+          install-dev-deps: "false"
+
+      - name: Validate Python syntax
+        run: python -m py_compile python/scrobble_analysis.py python/helpers/*.py
+
+  ci-status:
+    name: CI Status
+    runs-on: ubuntu-latest
+    needs:
+      - lint
+      - type-check
+      - security
+      - syntax-check
+    if: always()
+    steps:
+      - name: Check all jobs passed
+        run: |
+          if [[ "${{ needs.lint.result }}" != "success" ]] || \
+             [[ "${{ needs.type-check.result }}" != "success" ]] || \
+             [[ "${{ needs.security.result }}" != "success" ]] || \
+             [[ "${{ needs.syntax-check.result }}" != "success" ]]; then
+            echo "One or more jobs failed"
+            exit 1
+          fi
+          echo "All CI checks passed!"

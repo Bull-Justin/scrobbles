@@ -1,0 +1,13 @@
+# Development dependencies for CI/CD
+# Install with: pip install -r requirements-dev.txt
+
+# Imports 
+
+# Linting
+ruff>=0.4.0
+
+# Type checking
+mypy>=1.10.0
+
+# Security scanning
+bandit>=1.7.0

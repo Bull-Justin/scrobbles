@@ -1,0 +1,212 @@
+name: Analyze Scrobbles
+
+on:
+  workflow_dispatch:
+    inputs:
+      username:
+        description: "Last.fm username (overrides LASTFM_USERNAME env var)"
+        required: false
+        type: string
+      since:
+        description: "Start date for scrobbles (YYYY-MM-DD format)"
+        required: false
+        type: string
+      no-cache:
+        description: "Ignore cached data and fetch fresh from API"
+        required: false
+        type: boolean
+        default: false
+      no-graphs:
+        description: "Skip graph generation entirely"
+        required: false
+        type: boolean
+        default: false
+      graphs:
+        description: "Graphs to generate: empty=all, or comma-separated list (activity,mood_trends,genres_by_year,genres_overall,mood_timeline,top_artists,day_of_week,hour_of_day,dashboard)"
+        required: false
+        type: string
+        default: ""
+      no-report:
+        description: "Skip console report generation"
+        required: false
+        type: boolean
+        default: false
+      no-csv:
+        description: "Skip CSV export"
+        required: false
+        type: boolean
+        default: false
+
+  # Optional: scheduled runs
+  # schedule:
+  #   - cron: "0 6 * * 0"  # Weekly on Sunday at 6 AM UTC
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.12"
+  OUTPUT_DIR: scrobble_analysis
+
+jobs:
+  analyze:
+    name: Run Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          install-dev-deps: "false"
+
+      - name: Determine username
+        id: user
+        run: |
+          # Input takes precedence over repository variable
+          if [ -n "${{ inputs.username }}" ]; then
+            echo "username=${{ inputs.username }}" >> $GITHUB_OUTPUT
+          else
+            echo "username=${{ vars.LASTFM_USERNAME }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Validate configuration
+        run: |
+          if [ -z "${{ steps.user.outputs.username }}" ]; then
+            echo "::error::Username not set. Provide via input or LASTFM_USERNAME env var"
+            exit 1
+          fi
+          if [ -z "${{ secrets.LASTFM_API_KEY }}" ]; then
+            echo "::error::LASTFM_API_KEY secret is not set"
+            exit 1
+          fi
+          echo "Configuration validated"
+          echo "Username: ${{ steps.user.outputs.username }}"
+
+      - name: Build command arguments
+        id: args
+        run: |
+          # Required arguments
+          ARGS="--username ${{ steps.user.outputs.username }}"
+          ARGS="$ARGS --api-key ${{ secrets.LASTFM_API_KEY }}"
+
+          # --since
+          if [ -n "${{ inputs.since }}" ]; then
+            ARGS="$ARGS --since ${{ inputs.since }}"
+          fi
+
+          # --no-cache
+          if [ "${{ inputs.no-cache }}" = "true" ]; then
+            ARGS="$ARGS --no-cache"
+          fi
+
+          # --no-graphs or --graphs
+          if [ "${{ inputs.no-graphs }}" = "true" ]; then
+            ARGS="$ARGS --no-graphs"
+          elif [ -n "${{ inputs.graphs }}" ]; then
+            ARGS="$ARGS --graphs ${{ inputs.graphs }}"
+          fi
+
+          # --no-report
+          if [ "${{ inputs.no-report }}" = "true" ]; then
+            ARGS="$ARGS --no-report"
+          fi
+
+          # --no-csv
+          if [ "${{ inputs.no-csv }}" = "true" ]; then
+            ARGS="$ARGS --no-csv"
+          fi
+
+          echo "args=$ARGS" >> $GITHUB_OUTPUT
+          echo "Command: python scrobble_analysis.py $ARGS"
+
+      - name: Run scrobble analysis
+        working-directory: python
+        run: python scrobble_analysis.py ${{ steps.args.outputs.args }}
+        env:
+          PYTHONIOENCODING: utf-8
+
+      - name: List generated outputs
+        if: always()
+        run: |
+          echo "=== Generated Files ==="
+          if [ -d "${{ env.OUTPUT_DIR }}" ]; then
+            find ${{ env.OUTPUT_DIR }} -type f | head -50
+          else
+            echo "No output directory found"
+          fi
+
+      - name: Upload report and data
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: analysis-report
+          path: |
+            ${{ env.OUTPUT_DIR }}/analysis_report.md
+            ${{ env.OUTPUT_DIR }}/*.csv
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload graphs
+        uses: actions/upload-artifact@v4
+        if: always() && inputs.no-graphs != true
+        with:
+          name: graphs
+          path: ${{ env.OUTPUT_DIR }}/graphs/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload cache files
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cache-files
+          path: |
+            genre_cache.json
+            scrobble_cache.json
+          if-no-files-found: warn
+          retention-days: 7
+
+  summary:
+    name: Generate Summary
+    runs-on: ubuntu-latest
+    needs: analyze
+    if: always()
+
+    steps:
+      - name: Download report artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: analysis-report
+          path: report
+        continue-on-error: true
+
+      - name: Create job summary
+        run: |
+          echo "## Scrobble Analysis Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Run Date:** $(date -u +'%Y-%m-%d %H:%M UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ${{ needs.analyze.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.analyze.result }}" = "success" ]; then
+            echo "### Artifacts" >> $GITHUB_STEP_SUMMARY
+            echo "- **analysis-report**: CSV data and markdown report" >> $GITHUB_STEP_SUMMARY
+            echo "- **graphs**: Visualization PNG files" >> $GITHUB_STEP_SUMMARY
+            echo "- **cache-files**: API response cache" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+
+            if [ -f "report/analysis_report.md" ]; then
+              echo "### Report Preview" >> $GITHUB_STEP_SUMMARY
+              head -100 report/analysis_report.md >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "Analysis failed. Check the workflow logs for details." >> $GITHUB_STEP_SUMMARY
+          fi
