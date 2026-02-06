@@ -5,9 +5,9 @@
 !python/**
 !.github/
 !.github/**
-!requirements.txt
-!requirements-dev.txt
-!pyproject.toml
+!config/
+!config/**
+!README.md
 
 python/**/*.pyc
 python/**/__pycache__/

@@ -11,7 +11,7 @@ on:
     paths:
       - "python/**"
       - ".github/**"
-      - "requirements*.txt"
+      - "config/**"
   pull_request:
     branches:
       - master
@@ -19,7 +19,7 @@ on:
     paths:
       - "python/**"
       - ".github/**"
-      - "requirements*.txt"
+      - "config/**"
   workflow_dispatch:
 
 concurrency:
