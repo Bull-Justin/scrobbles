@@ -95,9 +95,7 @@ def analyze_months(months: list[dict], api_key: str) -> list[dict]:
 
     # There is probably a better way to do this but I don't wanna
     all_artists: set[str] = {
-        track["artist"]
-        for month_data in months
-        for track in month_data["tracks"]
+        track["artist"] for month_data in months for track in month_data["tracks"]
     }
     print(f"Found {len(all_artists)} unique artists")
 

@@ -11,8 +11,19 @@ __all__ = ["generate_report", "export_to_csv"]
 
 # Month name lookup (index 0 is empty for 1-based month numbers)
 MONTH_NAMES: tuple[str, ...] = (
-    "", "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
+    "",
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
 )
 
 
@@ -58,14 +69,21 @@ def generate_report(months: list[dict]) -> list[dict]:
     print(f"Total scrobbles: {total_scrobbles}")
     print(f"Unique artists: {len(all_artists)}")
     print(f"Unique tracks: {len(all_tracks)}")
-    print(f"Date range: {MONTH_NAMES[months[0]['month']]} {months[0]['year']} - "
-          f"{MONTH_NAMES[months[-1]['month']]} {months[-1]['year']}")
+    print(
+        f"Date range: {MONTH_NAMES[months[0]['month']]} {months[0]['year']} - "
+        f"{MONTH_NAMES[months[-1]['month']]} {months[-1]['year']}"
+    )
     print(f"Average scrobbles per month: {total_scrobbles / len(months):.1f}")
 
     _print_section("YEARLY ANALYSIS")
 
     yearly_data: dict = defaultdict(
-        lambda: {"scrobbles": 0, "months": 0, "genres": defaultdict(int), "moods": defaultdict(int)}
+        lambda: {
+            "scrobbles": 0,
+            "months": 0,
+            "genres": defaultdict(int),
+            "moods": defaultdict(int),
+        }
     )
 
     for month in months:
@@ -127,7 +145,9 @@ def generate_report(months: list[dict]) -> list[dict]:
 
     print("\nPrimary mood by month:")
     for month in months:
-        print(f"{month['month']}/{month['year']}: {month.get('primary_mood', 'unknown')}")
+        print(
+            f"{month['month']}/{month['year']}: {month.get('primary_mood', 'unknown')}"
+        )
 
     _print_section("TOP ARTISTS (by scrobble count)")
 
@@ -154,7 +174,9 @@ def generate_report(months: list[dict]) -> list[dict]:
     return months
 
 
-def export_to_csv(months: list[dict], output_file: str = "monthly_analysis.csv") -> None:
+def export_to_csv(
+    months: list[dict], output_file: str = "monthly_analysis.csv"
+) -> None:
     """
     Export analysis results to CSV files.
 
@@ -171,8 +193,16 @@ def export_to_csv(months: list[dict], output_file: str = "monthly_analysis.csv")
 
     with open(output_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
-        writer.writerow(["Year", "Month", "Scrobbles", "Primary Mood",
-                        "Top Genres", "Mood Distribution"])
+        writer.writerow(
+            [
+                "Year",
+                "Month",
+                "Scrobbles",
+                "Primary Mood",
+                "Top Genres",
+                "Mood Distribution",
+            ]
+        )
 
         for month in months:
             top_genres = "; ".join(list(month.get("genre_distribution", {}).keys())[:5])
@@ -180,14 +210,16 @@ def export_to_csv(months: list[dict], output_file: str = "monthly_analysis.csv")
                 f"{k}:{v}" for k, v in month.get("mood_distribution", {}).items()
             )
 
-            writer.writerow([
-                month["year"],
-                month["month"],
-                month["size"],
-                month.get("primary_mood", "unknown"),
-                top_genres,
-                mood_dist
-            ])
+            writer.writerow(
+                [
+                    month["year"],
+                    month["month"],
+                    month["size"],
+                    month.get("primary_mood", "unknown"),
+                    top_genres,
+                    mood_dist,
+                ]
+            )
 
     print(f"\nAnalysis exported to: {output_path}")
 
@@ -198,13 +230,15 @@ def export_to_csv(months: list[dict], output_file: str = "monthly_analysis.csv")
 
         for month in months:
             for track in month["tracks"]:
-                writer.writerow([
-                    track["date"],
-                    track["artist"],
-                    track["track"],
-                    track["album"],
-                    track.get("mood", "unknown"),
-                    "; ".join(track.get("genres", [])[:5])
-                ])
+                writer.writerow(
+                    [
+                        track["date"],
+                        track["artist"],
+                        track["track"],
+                        track["album"],
+                        track.get("mood", "unknown"),
+                        "; ".join(track.get("genres", [])[:5]),
+                    ]
+                )
 
     print(f"Detailed scrobbles exported to: {detailed_path}")

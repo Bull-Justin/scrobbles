@@ -39,7 +39,9 @@ def _parse_track(track: dict) -> dict | None:
 
     # Handle artist field
     artist_data = track.get("artist", {})
-    artist = artist_data.get("name", "") if isinstance(artist_data, dict) else artist_data
+    artist = (
+        artist_data.get("name", "") if isinstance(artist_data, dict) else artist_data
+    )
 
     # Handle album field
     album_data = track.get("album", {})
@@ -50,7 +52,9 @@ def _parse_track(track: dict) -> dict | None:
         "artist": artist,
         "album": album,
         "timestamp": timestamp,
-        "date": datetime.fromtimestamp(timestamp, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+        "date": datetime.fromtimestamp(timestamp, tz=timezone.utc).strftime(
+            "%Y-%m-%d %H:%M:%S"
+        ),
     }
 
 
@@ -60,7 +64,7 @@ def fetch_scrobbles(
     from_date: datetime | None = None,
     use_cache: bool = True,
     max_retries: int = 5,
-    base_delay: int = 10
+    base_delay: int = 10,
 ) -> list[dict]:
     """
     Fetch all scrobbles for a user from Last.fm API.
@@ -87,7 +91,10 @@ def fetch_scrobbles(
         cache = load_json_cache(SCROBBLE_CACHE_FILE)
         if cache.get("username") == username and cache.get("scrobbles"):
             # Check if complete cache < 1 hour old
-            if cache.get("complete") and time.time() - cache.get("last_fetch", 0) < 3600:
+            if (
+                cache.get("complete")
+                and time.time() - cache.get("last_fetch", 0) < 3600
+            ):
                 print(f"Using cached scrobbles ({len(cache['scrobbles'])} tracks)")
                 cached_scrobbles: list[dict] = cache["scrobbles"]
                 return cached_scrobbles
@@ -95,7 +102,9 @@ def fetch_scrobbles(
             # Check if incomplete fetch to resume
             if not cache.get("complete") and cache.get("scrobbles"):
                 all_scrobbles = cache["scrobbles"]
-                print(f"Resuming incomplete fetch ({len(all_scrobbles)} tracks already cached)")
+                print(
+                    f"Resuming incomplete fetch ({len(all_scrobbles)} tracks already cached)"
+                )
                 resuming = True
 
     print(f"Fetching scrobbles for user: {username}")
@@ -175,7 +184,9 @@ def fetch_scrobbles(
         except requests.exceptions.Timeout:
             consecutive_errors += 1
             if consecutive_errors >= max_retries:
-                print(f"  Max retries ({max_retries}) reached after timeouts. Saving progress")
+                print(
+                    f"  Max retries ({max_retries}) reached after timeouts. Saving progress"
+                )
                 break
 
             delay = base_delay * (2 ** (consecutive_errors - 1))
@@ -228,7 +239,7 @@ def fetch_artist_genres(
     api_key: str,
     cache: dict,
     max_retries: int = 3,
-    base_delay: int = 5
+    base_delay: int = 5,
 ) -> list[str]:
     """
     Fetch genre tags for an artist from Last.fm API.
@@ -263,7 +274,7 @@ def fetch_artist_genres(
 
             if "error" in data:
                 if attempt < max_retries - 1:
-                    time.sleep(base_delay * (2 ** attempt))
+                    time.sleep(base_delay * (2**attempt))
                     continue
                 break
 
@@ -276,7 +287,7 @@ def fetch_artist_genres(
 
         except (requests.exceptions.Timeout, requests.exceptions.RequestException):
             if attempt < max_retries - 1:
-                time.sleep(base_delay * (2 ** attempt))
+                time.sleep(base_delay * (2**attempt))
                 continue
             break
 

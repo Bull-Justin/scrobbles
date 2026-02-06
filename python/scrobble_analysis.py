@@ -35,36 +35,46 @@ Examples:
   %(prog)s -u Sir_Corndog -k YOUR_API_KEY --no-graphs
   %(prog)s -u Sir_Corndog -k YOUR_API_KEY --graphs activity,dashboard,top_artists
   %(prog)s -u Sir_Corndog -k YOUR_API_KEY --since 2025-06-23
-        """
+        """,
     )
 
     # Required arguments (can also be provided interactively)
-    parser.add_argument("-u", "--username",
-                        help="Last.fm username")
-    parser.add_argument("-k", "--api-key",
-                        help="Last.fm API key (Create one here: https://www.last.fm/api/account/create)")
+    parser.add_argument("-u", "--username", help="Last.fm username")
+    parser.add_argument(
+        "-k",
+        "--api-key",
+        help="Last.fm API key (Create one here: https://www.last.fm/api/account/create)",
+    )
 
     # Optional arguments
-    parser.add_argument("--since",
-                        help="Start date for scrobbles (YYYY-MM-DD format). Default: fetch all")
-    parser.add_argument("--no-cache", action="store_true",
-                        help="Ignore cached data and fetch fresh from API")
+    parser.add_argument(
+        "--since",
+        help="Start date for scrobbles (YYYY-MM-DD format). Default: fetch all",
+    )
+    parser.add_argument(
+        "--no-cache",
+        action="store_true",
+        help="Ignore cached data and fetch fresh from API",
+    )
 
     # Graph options
     graph_group = parser.add_mutually_exclusive_group()
-    graph_group.add_argument("--no-graphs", action="store_true",
-                             help="Skip graph generation entirely")
-    graph_group.add_argument("--graphs",
-                             help="Comma-separated list of graphs to generate. "
-                                  "Options: activity, mood_trends, genres_by_year, "
-                                  "genres_overall, mood_timeline, top_artists, "
-                                  "day_of_week, hour_of_day, dashboard")
+    graph_group.add_argument(
+        "--no-graphs", action="store_true", help="Skip graph generation entirely"
+    )
+    graph_group.add_argument(
+        "--graphs",
+        help="Comma-separated list of graphs to generate. "
+        "Options: activity, mood_trends, genres_by_year, "
+        "genres_overall, mood_timeline, top_artists, "
+        "day_of_week, hour_of_day, dashboard",
+    )
 
     # Output options
-    parser.add_argument("--no-report", action="store_true",
-                        help="Skip console report generation")
-    parser.add_argument("--no-csv", action="store_true",
-                        help="Skip CSV export")
+    parser.add_argument(
+        "--no-report", action="store_true", help="Skip console report generation"
+    )
+    parser.add_argument("--no-csv", action="store_true", help="Skip CSV export")
 
     return parser.parse_args()
 
@@ -154,7 +164,9 @@ def main():
     print("=" * WINDOW_SIZE)
 
     # Fetch scrobbles
-    scrobbles = fetch_scrobbles(username, api_key, from_date=from_date, use_cache=use_cache)
+    scrobbles = fetch_scrobbles(
+        username, api_key, from_date=from_date, use_cache=use_cache
+    )
 
     if not scrobbles:
         print("\nNo scrobbles found. Please check your username and try again.")
