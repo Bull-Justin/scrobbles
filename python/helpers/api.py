@@ -50,7 +50,7 @@ def _parse_track(track: dict) -> dict | None:
         "artist": artist,
         "album": album,
         "timestamp": timestamp,
-        "date": datetime.fromtimestamp(timestamp, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+        "date": datetime.fromtimestamp(timestamp, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
     }
 
 
@@ -106,14 +106,14 @@ def fetch_scrobbles(
 
     while page <= total_pages:
         try:
-            params = {
+            params: dict[str, str | int] = {
                 "method": "user.getRecentTracks",
                 "user": username,
                 "api_key": api_key,
                 "format": "json",
                 "limit": 200,
                 "page": page,
-                "extended": 1
+                "extended": 1,
             }
             if from_timestamp:
                 params["from"] = from_timestamp
@@ -168,7 +168,7 @@ def fetch_scrobbles(
                     "last_fetch": time.time(),
                     "incomplete": True,
                     "last_page": page,
-                    "total_pages": total_pages
+                    "total_pages": total_pages,
                 }
                 save_json_cache(temp_cache, SCROBBLE_CACHE_FILE)
 
@@ -214,7 +214,7 @@ def fetch_scrobbles(
         "username": username,
         "scrobbles": all_scrobbles,
         "last_fetch": time.time(),
-        "complete": is_complete
+        "complete": is_complete,
     }
     save_json_cache(cache, SCROBBLE_CACHE_FILE)
 
@@ -256,7 +256,7 @@ def fetch_artist_genres(
                 "method": "artist.gettoptags",
                 "artist": artist_name,
                 "api_key": api_key,
-                "format": "json"
+                "format": "json",
             }
             response = session.get(LASTFM_API_URL, params=params, timeout=10)
             data = response.json()

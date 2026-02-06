@@ -17,13 +17,13 @@ from numpy.typing import NDArray
 
 from .config import MOOD_COLORS, OUTPUT_DIR
 
+__all__ = ["GraphOptions", "generate_graphs"]
+
 
 def _get_colormap(name: str, n: int) -> NDArray[np.floating[Any]]:
     """Get colors from a named colormap."""
     cmap = matplotlib.colormaps[name]
     return np.array(cmap(np.linspace(0, 1, n)))
-
-__all__ = ["GraphOptions", "generate_graphs"]
 
 # Short month names for graph labels
 MONTH_NAMES: tuple[str, ...] = (
@@ -217,7 +217,7 @@ def generate_genres_overall_graph(months: list[dict], graphs_dir: Path) -> None:
     all_counts = list(genre_counts) + [other_count]
 
     fig, ax = plt.subplots(figsize=(10, 8))
-    colors = _get_colormap("Paired", len(all_names))
+    colors = _get_colormap("Paired", len(all_names)).tolist()
     ax.pie(all_counts, labels=all_names, autopct="%1.1f%%", colors=colors, pctdistance=0.8)
     ax.set_title("Overall Genre Distribution")
 

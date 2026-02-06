@@ -70,7 +70,7 @@ def group_scrobbles_by_month(scrobbles: list[dict]) -> list[dict]:
             "month": month,
             "year": year,
             "tracks": tracks,
-            "size": len(tracks)
+            "size": len(tracks),
         }
         for (year, month), tracks in sorted(monthly_data.items())
     ]
