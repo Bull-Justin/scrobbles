@@ -145,9 +145,7 @@ def generate_report(months: list[dict]) -> list[dict]:
 
     print("\nPrimary mood by month:")
     for month in months:
-        print(
-            f"{month['month']}/{month['year']}: {month.get('primary_mood', 'unknown')}"
-        )
+        print(f"{month['month']}/{month['year']}: {month.get('primary_mood', 'unknown')}")
 
     _print_section("TOP ARTISTS (by scrobble count)")
 
@@ -174,9 +172,7 @@ def generate_report(months: list[dict]) -> list[dict]:
     return months
 
 
-def export_to_csv(
-    months: list[dict], output_file: str = "monthly_analysis.csv"
-) -> None:
+def export_to_csv(months: list[dict], output_file: str = "monthly_analysis.csv") -> None:
     """
     Export analysis results to CSV files.
 
@@ -206,9 +202,7 @@ def export_to_csv(
 
         for month in months:
             top_genres = "; ".join(list(month.get("genre_distribution", {}).keys())[:5])
-            mood_dist = "; ".join(
-                f"{k}:{v}" for k, v in month.get("mood_distribution", {}).items()
-            )
+            mood_dist = "; ".join(f"{k}:{v}" for k, v in month.get("mood_distribution", {}).items())
 
             writer.writerow(
                 [

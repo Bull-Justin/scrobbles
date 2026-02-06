@@ -1,5 +1,5 @@
 """
-Helper modules for Last.fm scrobble analysis.
+Scrobble Analysis - Last.fm listening habits analyzer.
 
 This package provides utilities for:
 - API interaction with Last.fm
@@ -17,6 +17,7 @@ from .config import (
     MOOD_COLORS,
     MOOD_MAPPINGS,
     OUTPUT_DIR,
+    PROJECT_ROOT,
     WINDOW_SIZE,
 )
 from .reporting import export_to_csv, generate_report
@@ -35,6 +36,7 @@ __all__ = [
     "save_json_cache",
     # Config
     "LASTFM_API_URL",
+    "PROJECT_ROOT",
     "OUTPUT_DIR",
     "WINDOW_SIZE",
     "MOOD_MAPPINGS",

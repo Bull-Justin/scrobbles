@@ -7,7 +7,7 @@ Analyzes your Last.fm listening history by genre, mood, and patterns over time. 
 - Fetch and cache scrobble history from Last.fm
 - Analyze listening patterns by month, day of week, and hour
 - Categorize music by genre and mood
-- Generate visualizations (graphs and dashboards)
+- Generate visualizations (graphs and dashboards) 
 - Export data to CSV for further analysis
 
 ## Requirements
@@ -18,25 +18,28 @@ Analyzes your Last.fm listening history by genre, mood, and patterns over time. 
 ## Installation
 
 ```bash
-# Install dependencies
-pip install -r config/requirements.txt
+# Install the package in editable mode
+pip install -e .
+
+# Or install with development dependencies
+pip install -e ".[dev]"
 ```
 
 ## Usage
 
-### Command Line
+Run the analyzer as a Python module:
 
 ```bash
-cd python
-
-# Basic usage (will prompt for credentials)
-python scrobble_analysis.py
-
-# With credentials
-python scrobble_analysis.py --username YOUR_USERNAME --api-key YOUR_API_KEY
+python -m scrobble_analysis --username YOUR_USERNAME --api-key YOUR_API_KEY
 
 # Short flags
-python scrobble_analysis.py -u YOUR_USERNAME -k YOUR_API_KEY
+python -m scrobble_analysis -u YOUR_USERNAME -k YOUR_API_KEY
+```
+
+If your Python Scripts directory is in your PATH, you can also use the command directly:
+
+```bash
+scrobble-analysis -u YOUR_USERNAME -k YOUR_API_KEY
 ```
 
 ### Options
@@ -68,16 +71,20 @@ python scrobble_analysis.py -u YOUR_USERNAME -k YOUR_API_KEY
 
 ```bash
 # Analyze all scrobbles, generate all graphs
-python scrobble_analysis.py -u USERNAME -k YOUR_API_KEY
+python -m scrobble_analysis -u USERNAME -k YOUR_API_KEY
+scrobble-analysis -u USERNAME -k YOUR_API_KEY
 
 # Analyze from a specific date
-python scrobble_analysis.py -u USERNAME -k YOUR_API_KEY --since 2024-01-01
+python -m scrobble_analysis -u USERNAME -k YOUR_API_KEY --since 2024-01-01
+scrobble-analysis -u USERNAME -k YOUR_API_KEY --since 2024-01-01
 
 # Only generate specific graphs
-python scrobble_analysis.py -u USERNAME -k YOUR_API_KEY --graphs dashboard,top_artists
+python -m scrobble_analysis -u USERNAME -k YOUR_API_KEY --graphs dashboard,top_artists
+scrobble-analysis -u USERNAME -k YOUR_API_KEY --graphs dashboard,top_artists
 
 # Data only, no visualizations
-python scrobble_analysis.py -u USERNAME -k YOUR_API_KEY --no-graphs
+python -m scrobble_analysis -u USERNAME -k YOUR_API_KEY --no-graphs
+scrobble-analysis -u USERNAME -k YOUR_API_KEY --no-graphs
 ```
 
 ## GitHub Actions
@@ -100,62 +107,44 @@ This project includes GitHub Actions workflows for CI and running analyses.
 
 ```
 scrobbles/
-├── python/                     # Python source code
-│   ├── scrobble_analysis.py    # Main entry point and CLI
-│   └── helpers/                # Module with helper functions
-│       ├── __init__.py         # Package exports
-│       ├── api.py              # Last.fm API client
-│       ├── cache.py            # Caching for API responses
-│       ├── config.py           # Configuration and constants
-│       ├── analysis.py         # Data analysis functions
-│       ├── visualization.py    # Graph generation
-│       └── reporting.py        # Report and CSV generation
-├── config/                     # Configuration files
-│   ├── requirements.txt        # Runtime dependencies
-│   ├── requirements-dev.txt    # Development dependencies
-│   └── pyproject.toml          # Tool configuration (ruff, mypy)
+├── src/scrobble_analysis/      # Python package
+│   ├── __init__.py             # Package exports
+│   ├── __main__.py             # Module entry point
+│   ├── cli.py                  # CLI and argument parsing
+│   ├── api.py                  # Last.fm API client
+│   ├── cache.py                # Caching for API responses
+│   ├── config.py               # Configuration and constants
+│   ├── analysis.py             # Data analysis functions
+│   ├── visualization.py        # Graph generation
+│   └── reporting.py            # Report and CSV generation
+├── tests/                      # Test suite
+├── pyproject.toml              # Package config and tool settings
+├── requirements.txt            # Runtime dependencies
+├── requirements-dev.txt        # Development dependencies
 ├── .github/                    # GitHub Actions
 │   ├── workflows/
-│   │   ├── ci.yml              # CI pipeline (lint, type check, security)
-│   │   └── analyze.yml         # Run analysis workflow
+│   │   ├── ci.yml              # CI pipeline
+│   │   └── analyze.yml         # Analysis workflow
 │   └── actions/
-│       └── setup-python/       # Reusable Python setup action
-└── .gitignore                  # Git ignore rules
+│       └── setup-python/       # Reusable setup action
+└── .gitignore
 ```
 
-## File Descriptions
+## Module Descriptions
 
-### Python Source
-
-| File | Purpose |
-|------|---------|
-| `scrobble_analysis.py` | CLI entry point, argument parsing, orchestrates the analysis pipeline |
-| `helpers/api.py` | Handles Last.fm API requests, fetches scrobbles and artist info |
-| `helpers/cache.py` | Manages JSON cache files to avoid redundant API calls |
-| `helpers/config.py` | Constants, paths, mood mappings, and color schemes |
-| `helpers/analysis.py` | Groups scrobbles by month, calculates genres and moods |
-| `helpers/visualization.py` | Generates matplotlib graphs and dashboards |
-| `helpers/reporting.py` | Creates markdown reports and CSV exports |
-
-### Configuration
-
-| File | Purpose |
-|------|---------|
-| `requirements.txt` | Runtime dependencies (requests, matplotlib) |
-| `requirements-dev.txt` | Dev tools (ruff, mypy, bandit) |
-| `pyproject.toml` | Configuration for linting, type checking, and security scanning |
-
-### GitHub Actions
-
-| File | Purpose |
-|------|---------|
-| `ci.yml` | Runs on code changes: linting (ruff), type checking (mypy), security scan (bandit), syntax validation |
-| `analyze.yml` | Manual workflow to run analysis and upload results as artifacts |
-| `setup-python/action.yml` | Reusable composite action for Python environment setup with caching |
+| Module | Purpose |
+|--------|---------|
+| `cli.py` | CLI entry point, argument parsing, orchestrates the analysis pipeline |
+| `api.py` | Handles Last.fm API requests, fetches scrobbles and artist info |
+| `cache.py` | Manages JSON cache files to avoid redundant API calls |
+| `config.py` | Constants, paths, mood mappings, and color schemes |
+| `analysis.py` | Groups scrobbles by month, calculates genres and moods |
+| `visualization.py` | Generates matplotlib graphs and dashboards |
+| `reporting.py` | Creates markdown reports and CSV exports |
 
 ## Output
 
-After running, results are saved to `scrobble_analysis/`:
+After running, results are saved to `output/`:
 
 - `analysis_report.md` - Detailed markdown report
 - `monthly_analysis.csv` - Month-by-month data
