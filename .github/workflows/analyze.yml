@@ -50,7 +50,7 @@ permissions:
 
 env:
   PYTHON_VERSION: "3.12"
-  OUTPUT_DIR: scrobble_analysis
+  OUTPUT_DIR: output
 
 jobs:
   analyze:
@@ -66,6 +66,9 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           install-dev-deps: "false"
+
+      - name: Install package
+        run: pip install -e .
 
       - name: Determine username
         id: user
@@ -125,11 +128,10 @@ jobs:
           fi
 
           echo "args=$ARGS" >> $GITHUB_OUTPUT
-          echo "Command: python scrobble_analysis.py $ARGS"
+          echo "Command: python -m scrobble_analysis $ARGS"
 
       - name: Run scrobble analysis
-        working-directory: python
-        run: python scrobble_analysis.py ${{ steps.args.outputs.args }}
+        run: python -m scrobble_analysis ${{ steps.args.outputs.args }}
         env:
           PYTHONIOENCODING: utf-8
 

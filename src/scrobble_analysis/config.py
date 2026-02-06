@@ -6,7 +6,7 @@ from pathlib import Path
 
 __all__ = [
     "LASTFM_API_URL",
-    "BASE_DIR",
+    "PROJECT_ROOT",
     "GENRE_CACHE_FILE",
     "SCROBBLE_CACHE_FILE",
     "OUTPUT_DIR",
@@ -17,10 +17,12 @@ __all__ = [
 
 LASTFM_API_URL: str = "http://ws.audioscrobbler.com/2.0/"
 
-BASE_DIR: Path = Path(__file__).parent.parent.parent
-GENRE_CACHE_FILE: Path = BASE_DIR / "genre_cache.json"
-SCROBBLE_CACHE_FILE: Path = BASE_DIR / "scrobble_cache.json"
-OUTPUT_DIR: Path = BASE_DIR / "scrobble_analysis"
+# Navigate from config.py to project root:
+# src/scrobble_analysis/config.py -> src/scrobble_analysis -> src -> project root. this needs fixing but it is 12:42am on a friday and i have work
+PROJECT_ROOT: Path = Path(__file__).parent.parent.parent
+GENRE_CACHE_FILE: Path = PROJECT_ROOT / "genre_cache.json"
+SCROBBLE_CACHE_FILE: Path = PROJECT_ROOT / "scrobble_cache.json"
+OUTPUT_DIR: Path = PROJECT_ROOT / "output"
 
 # I've just always used 80 for console output width, can't remember why
 WINDOW_SIZE: int = 80
@@ -139,6 +141,7 @@ MOOD_MAPPINGS: dict[str, list[str]] = {
     ],
 }
 
+# vscode renders these for me and that is wildly cool
 MOOD_COLORS: dict[str, str] = {
     "angsty": "#e74c3c",
     "introspective": "#8e44ad",

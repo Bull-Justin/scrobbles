@@ -93,9 +93,7 @@ def _prepare_graph_data(months: list[dict]) -> dict[str, Any]:
         "min_size": min(sizes),
         "max_size": max(sizes),
         "yearly_stats": dict(yearly_stats),
-        "yearly_avgs": {
-            year: float(np.mean(vals)) for year, vals in yearly_stats.items()
-        },
+        "yearly_avgs": {year: float(np.mean(vals)) for year, vals in yearly_stats.items()},
     }
 
 
@@ -112,9 +110,7 @@ def generate_activity_graph(months: list[dict], graphs_dir: Path, data: dict) ->
     """Generate scrobble activity trends graph"""
     fig, ax = plt.subplots(figsize=(14, 6))
 
-    colors = [
-        MOOD_COLORS.get(m.get("primary_mood", "neutral"), "#95a5a6") for m in months
-    ]
+    colors = [MOOD_COLORS.get(m.get("primary_mood", "neutral"), "#95a5a6") for m in months]
     ax.bar(
         range(len(data["dates"])),
         data["sizes"],
@@ -193,9 +189,7 @@ def generate_activity_graph(months: list[dict], graphs_dir: Path, data: dict) ->
     _save_figure(graphs_dir, "scrobble_activity.png")
 
 
-def generate_mood_trends_graph(
-    months: list[dict], graphs_dir: Path, data: dict
-) -> None:
+def generate_mood_trends_graph(months: list[dict], graphs_dir: Path, data: dict) -> None:
     """Generate mood distribution over time graph"""
     all_moods = list(MOOD_COLORS.keys())
     mood_data: dict[str, list[float]] = {mood: [] for mood in all_moods}
@@ -277,26 +271,20 @@ def generate_genres_overall_graph(months: list[dict], graphs_dir: Path) -> None:
     if not top_genres:
         return
 
-    other_count = sum(
-        count for _, count in sorted(all_genres.items(), key=lambda x: -x[1])[10:]
-    )
+    other_count = sum(count for _, count in sorted(all_genres.items(), key=lambda x: -x[1])[10:])
     genre_names, genre_counts = zip(*top_genres, strict=True)
     all_names = list(genre_names) + ["other"]
     all_counts = list(genre_counts) + [other_count]
 
     fig, ax = plt.subplots(figsize=(10, 8))
     colors = _get_colormap("Paired", len(all_names)).tolist()
-    ax.pie(
-        all_counts, labels=all_names, autopct="%1.1f%%", colors=colors, pctdistance=0.8
-    )
+    ax.pie(all_counts, labels=all_names, autopct="%1.1f%%", colors=colors, pctdistance=0.8)
     ax.set_title("Overall Genre Distribution")
 
     _save_figure(graphs_dir, "genres_overall.png")
 
 
-def generate_mood_timeline_graph(
-    months: list[dict], graphs_dir: Path, data: dict
-) -> None:
+def generate_mood_timeline_graph(months: list[dict], graphs_dir: Path, data: dict) -> None:
     """Generate mood timeline graph."""
     fig, ax = plt.subplots(figsize=(14, 3))
 
@@ -323,12 +311,9 @@ def generate_mood_timeline_graph(
     ax.set_title("Primary Mood Timeline")
 
     legend_patches = [
-        mpatches.Patch(color=color, label=mood.capitalize())
-        for mood, color in MOOD_COLORS.items()
+        mpatches.Patch(color=color, label=mood.capitalize()) for mood, color in MOOD_COLORS.items()
     ]
-    ax.legend(
-        handles=legend_patches, loc="upper left", bbox_to_anchor=(1, 1), fontsize=8
-    )
+    ax.legend(handles=legend_patches, loc="upper left", bbox_to_anchor=(1, 1), fontsize=8)
 
     _save_figure(graphs_dir, "mood_timeline.png")
 
@@ -447,9 +432,7 @@ def generate_dashboard(months: list[dict], graphs_dir: Path, data: dict) -> None
 
     total_scrobbles = sum(data["sizes"])
     unique_artists = len({t["artist"] for m in months for t in m["tracks"]})
-    unique_tracks = len(
-        {(t["artist"], t["track"]) for m in months for t in m["tracks"]}
-    )
+    unique_tracks = len({(t["artist"], t["track"]) for m in months for t in m["tracks"]})
 
     stats_lines = [
         f"Total Months: {len(months)}",
@@ -597,9 +580,7 @@ def generate_dashboard(months: list[dict], graphs_dir: Path, data: dict) -> None
         linewidth=2,
         markersize=4,
     )
-    ax5.axhline(
-        y=data["avg_size"], color="#e74c3c", linestyle="--", linewidth=1.5, alpha=0.7
-    )
+    ax5.axhline(y=data["avg_size"], color="#e74c3c", linestyle="--", linewidth=1.5, alpha=0.7)
     ax5.fill_between(
         range(len(data["sizes"])),
         data["avg_size"] - data["std_size"],

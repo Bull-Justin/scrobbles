@@ -4,9 +4,9 @@ Analyzes listening habits by genre, scrobble count, and mood across months.
 Fetches data from Last.fm API for user scrobbles.
 
 Usage:
-    python scrobble_analysis.py --username <username> --api-key <key>
-    python scrobble_analysis.py -u <username> -k <key> --no-graphs
-    python scrobble_analysis.py -u <username> -k <key> --graphs activity,dashboard
+    python -m scrobble_analysis --username <username> --api-key <key>
+    python -m scrobble_analysis -u <username> -k <key> --no-graphs
+    python -m scrobble_analysis -u <username> -k <key> --graphs activity,dashboard
 """
 
 import argparse
@@ -14,14 +14,14 @@ import sys
 from datetime import datetime, timezone
 
 # Fix Windows console encoding
-if sys.platform == "win32":
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
 
-from helpers.analysis import analyze_months, group_scrobbles_by_month
-from helpers.api import fetch_scrobbles
-from helpers.config import OUTPUT_DIR, WINDOW_SIZE
-from helpers.reporting import export_to_csv, generate_report
-from helpers.visualization import GraphOptions, generate_graphs
+from .analysis import analyze_months, group_scrobbles_by_month
+from .api import fetch_scrobbles
+from .config import OUTPUT_DIR, WINDOW_SIZE
+from .reporting import export_to_csv, generate_report
+from .visualization import GraphOptions, generate_graphs
 
 
 def parse_args():
@@ -31,10 +31,10 @@ def parse_args():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  %(prog)s -u Sir_Corndog -k YOUR_API_KEY
-  %(prog)s -u Sir_Corndog -k YOUR_API_KEY --no-graphs
-  %(prog)s -u Sir_Corndog -k YOUR_API_KEY --graphs activity,dashboard,top_artists
-  %(prog)s -u Sir_Corndog -k YOUR_API_KEY --since 2025-06-23
+  %(prog)s -u USERNAME -k YOUR_API_KEY
+  %(prog)s -u USERNAME -k YOUR_API_KEY --no-graphs
+  %(prog)s -u USERNAME -k YOUR_API_KEY --graphs activity,dashboard,top_artists
+  %(prog)s -u USERNAME -k YOUR_API_KEY --since 2025-06-23
         """,
     )
 
@@ -71,9 +71,7 @@ Examples:
     )
 
     # Output options
-    parser.add_argument(
-        "--no-report", action="store_true", help="Skip console report generation"
-    )
+    parser.add_argument("--no-report", action="store_true", help="Skip console report generation")
     parser.add_argument("--no-csv", action="store_true", help="Skip CSV export")
 
     return parser.parse_args()
@@ -164,9 +162,7 @@ def main():
     print("=" * WINDOW_SIZE)
 
     # Fetch scrobbles
-    scrobbles = fetch_scrobbles(
-        username, api_key, from_date=from_date, use_cache=use_cache
-    )
+    scrobbles = fetch_scrobbles(username, api_key, from_date=from_date, use_cache=use_cache)
 
     if not scrobbles:
         print("\nNo scrobbles found. Please check your username and try again.")

@@ -6,16 +6,18 @@ name: CI
 on:
   push:
     paths:
-      - "python/**"
+      - "src/**"
       - ".github/**"
-      - "config/**"
+      - "pyproject.toml"
+      - "requirements*.txt"
   pull_request:
     branches:
       - main
     paths:
-      - "python/**"
+      - "src/**"
       - ".github/**"
-      - "config/**"
+      - "pyproject.toml"
+      - "requirements*.txt"
   workflow_dispatch:
 
 concurrency:
@@ -39,10 +41,10 @@ jobs:
           python-version: "3.12"
 
       - name: Run Ruff linter
-        run: ruff check python/ --output-format=github
+        run: ruff check src/ --output-format=github
 
       - name: Run Ruff formatter check
-        run: ruff format python/ --check --diff
+        run: ruff format src/ --check --diff
 
   type-check:
     name: Type Check
@@ -57,7 +59,7 @@ jobs:
           python-version: "3.12"
 
       - name: Run mypy
-        run: mypy python/ --ignore-missing-imports
+        run: mypy src/ --ignore-missing-imports
 
   security:
     name: Security Scan
@@ -72,7 +74,7 @@ jobs:
           python-version: "3.12"
 
       - name: Run Bandit security scanner
-        run: bandit -r python/ -ll --format json --output bandit-report.json || true
+        run: bandit -r src/ -ll --format json --output bandit-report.json || true
 
       - name: Display security findings
         if: always()
@@ -100,7 +102,7 @@ jobs:
           install-dev-deps: "false"
 
       - name: Validate Python syntax
-        run: python -m py_compile python/scrobble_analysis.py python/helpers/*.py
+        run: python -m py_compile src/scrobble_analysis/*.py
 
   ci-status:
     name: CI Status

@@ -1,18 +1,47 @@
+# Default: ignore everything, explicitly allow what we want
 *
 
+# Core files
 !.gitignore
-!python/
-!python/**
+!README.md
+!pyproject.toml
+!requirements.txt
+!requirements-dev.txt
+
+# Source code
+!src/
+!src/**
+
+# Tests
+!tests/
+!tests/**
+
+# GitHub Actions
 !.github/
 !.github/**
-!config/
-!config/**
-!README.md
 
-python/**/*.pyc
-python/**/__pycache__/
+# Python bytecode
+**/*.pyc
+**/__pycache__/
+*.egg-info/
 
-graphs/
-scrobble_analysis/
+# Output directories
+output/
 
+# Cache files
 *_cache.json
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Tool caches
+.ruff_cache/
+.mypy_cache/
