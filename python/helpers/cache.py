@@ -20,8 +20,9 @@ def load_json_cache(cache_file: Path) -> dict[str, Any]:
         Dict containing cached data, or empty dict if file doesn't exist
     """
     if cache_file.exists():
-        with open(cache_file, "r", encoding="utf-8") as f:
-            return json.load(f)
+        with open(cache_file, encoding="utf-8") as f:
+            data: dict[str, Any] = json.load(f)
+            return data
     return {}
 
 

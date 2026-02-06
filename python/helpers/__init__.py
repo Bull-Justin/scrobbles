@@ -9,14 +9,17 @@ This package provides utilities for:
 - Caching for performance
 """
 
-from .api import fetch_scrobbles, fetch_artist_genres
-from .analysis import classify_mood, group_scrobbles_by_month, analyze_months
+from .analysis import analyze_months, classify_mood, group_scrobbles_by_month
+from .api import fetch_artist_genres, fetch_scrobbles
 from .cache import load_json_cache, save_json_cache
 from .config import (
-    LASTFM_API_URL, OUTPUT_DIR, WINDOW_SIZE,
-    MOOD_MAPPINGS, MOOD_COLORS
+    LASTFM_API_URL,
+    MOOD_COLORS,
+    MOOD_MAPPINGS,
+    OUTPUT_DIR,
+    WINDOW_SIZE,
 )
-from .reporting import generate_report, export_to_csv
+from .reporting import export_to_csv, generate_report
 from .visualization import GraphOptions, generate_graphs
 
 __all__ = [

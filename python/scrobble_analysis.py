@@ -9,19 +9,19 @@ Usage:
     python scrobble_analysis.py -u <username> -k <key> --graphs activity,dashboard
 """
 
-import sys
 import argparse
+import sys
 from datetime import datetime, timezone
 
 # Fix Windows console encoding
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-from helpers.config import OUTPUT_DIR, WINDOW_SIZE
+from helpers.analysis import analyze_months, group_scrobbles_by_month
 from helpers.api import fetch_scrobbles
-from helpers.analysis import group_scrobbles_by_month, analyze_months
-from helpers.reporting import generate_report, export_to_csv
-from helpers.visualization import generate_graphs, GraphOptions
+from helpers.config import OUTPUT_DIR, WINDOW_SIZE
+from helpers.reporting import export_to_csv, generate_report
+from helpers.visualization import GraphOptions, generate_graphs
 
 
 def parse_args():

@@ -5,11 +5,10 @@ Analysis functions for processing scrobble data.
 from collections import defaultdict
 from datetime import datetime, timezone
 from functools import lru_cache
-from typing import Optional
 
-from .config import MOOD_MAPPINGS, GENRE_CACHE_FILE
-from .cache import load_json_cache, save_json_cache
 from .api import fetch_artist_genres
+from .cache import load_json_cache, save_json_cache
+from .config import GENRE_CACHE_FILE, MOOD_MAPPINGS
 
 __all__ = ["classify_mood", "group_scrobbles_by_month", "analyze_months"]
 
@@ -45,7 +44,7 @@ def classify_mood(genres: tuple[str, ...]) -> str:
                     break
 
     if mood_scores:
-        return max(mood_scores, key=mood_scores.get)
+        return max(mood_scores, key=lambda k: mood_scores[k])
     return "neutral"
 
 
@@ -131,7 +130,7 @@ def analyze_months(months: list[dict], api_key: str) -> list[dict]:
         )
         month_data["mood_distribution"] = dict(mood_counts)
         month_data["primary_mood"] = (
-            max(mood_counts, key=mood_counts.get) if mood_counts else "unknown"
+            max(mood_counts, key=lambda k: mood_counts[k]) if mood_counts else "unknown"
         )
 
     return months

@@ -3,16 +3,25 @@ Visualization functions for generating analysis graphs.
 """
 
 from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass, fields
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-import matplotlib.pyplot as plt
+import matplotlib
 import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
 import numpy as np
+from numpy.typing import NDArray
 
-from .config import OUTPUT_DIR, MOOD_COLORS
+from .config import MOOD_COLORS, OUTPUT_DIR
+
+
+def _get_colormap(name: str, n: int) -> NDArray[np.floating[Any]]:
+    """Get colors from a named colormap."""
+    cmap = matplotlib.colormaps[name]
+    return np.array(cmap(np.linspace(0, 1, n)))
 
 __all__ = ["GraphOptions", "generate_graphs"]
 
@@ -114,7 +123,7 @@ def generate_activity_graph(months: list[dict], graphs_dir: Path, data: dict) ->
         f"Overall Stats:\n  Mean: {data['avg_size']:.1f}\n  Median: {data['median_size']:.1f}\n"
         f"  Std Dev: {data['std_size']:.1f}\n  Min: {data['min_size']}\n  Max: {data['max_size']}"
     )
-    props = dict(boxstyle="round,pad=0.5", facecolor="white", alpha=0.9, edgecolor="#bdc3c7")
+    props = {"boxstyle": "round,pad=0.5", "facecolor": "white", "alpha": 0.9, "edgecolor": "#bdc3c7"}
     ax.text(0.02, 0.98, stats_text, transform=ax.transAxes, fontsize=9,
             verticalalignment="top", bbox=props, family="monospace")
 
@@ -173,13 +182,13 @@ def generate_genres_by_year_graph(months: list[dict], graphs_dir: Path) -> None:
     if len(years) == 1:
         axes = [axes]
 
-    genre_colors = plt.cm.Set3(np.linspace(0, 1, 12))
+    genre_colors = _get_colormap("Set3", 12)
 
-    for ax, year in zip(axes, years):
+    for ax, year in zip(axes, years, strict=True):
         genres = yearly_genres[year]
         top_genres = sorted(genres.items(), key=lambda x: -x[1])[:10]
         if top_genres:
-            names, counts = zip(*top_genres)
+            names, counts = zip(*top_genres, strict=True)
             y_pos = np.arange(len(names))
             ax.barh(y_pos, counts, color=genre_colors[:len(names)])
             ax.set_yticks(y_pos)
@@ -203,13 +212,13 @@ def generate_genres_overall_graph(months: list[dict], graphs_dir: Path) -> None:
         return
 
     other_count = sum(count for _, count in sorted(all_genres.items(), key=lambda x: -x[1])[10:])
-    names, counts = zip(*top_genres)
-    names = list(names) + ["other"]
-    counts = list(counts) + [other_count]
+    genre_names, genre_counts = zip(*top_genres, strict=True)
+    all_names = list(genre_names) + ["other"]
+    all_counts = list(genre_counts) + [other_count]
 
     fig, ax = plt.subplots(figsize=(10, 8))
-    colors = plt.cm.Paired(np.linspace(0, 1, len(names)))
-    ax.pie(counts, labels=names, autopct="%1.1f%%", colors=colors, pctdistance=0.8)
+    colors = _get_colormap("Paired", len(all_names))
+    ax.pie(all_counts, labels=all_names, autopct="%1.1f%%", colors=colors, pctdistance=0.8)
     ax.set_title("Overall Genre Distribution")
 
     _save_figure(graphs_dir, "genres_overall.png")
@@ -254,9 +263,9 @@ def generate_top_artists_graph(months: list[dict], graphs_dir: Path) -> None:
         return
 
     fig, ax = plt.subplots(figsize=(12, 8))
-    artists, counts = zip(*top_artists)
+    artists, counts = zip(*top_artists, strict=True)
     y_pos = np.arange(len(artists))
-    colors = plt.cm.viridis(np.linspace(0.3, 0.9, len(artists)))
+    colors = _get_colormap("viridis", len(artists))
 
     bars = ax.barh(y_pos, counts, color=colors)
     ax.set_yticks(y_pos)
@@ -266,7 +275,7 @@ def generate_top_artists_graph(months: list[dict], graphs_dir: Path) -> None:
     ax.set_title("Top 15 Artists by Scrobble Count")
 
     max_count = max(counts)
-    for bar, count in zip(bars, counts):
+    for bar, count in zip(bars, counts, strict=True):
         ax.text(bar.get_width() + max_count * 0.01, bar.get_y() + bar.get_height() / 2,
                 f"{count}", va="center", fontsize=9)
 
@@ -286,7 +295,7 @@ def generate_day_of_week_graph(months: list[dict], graphs_dir: Path) -> None:
     fig, ax = plt.subplots(figsize=(10, 6))
     days = list(range(7))
     counts = [day_counts[d] for d in days]
-    colors = plt.cm.Blues(np.linspace(0.4, 0.9, 7))
+    colors = _get_colormap("Blues", 7)
 
     bars = ax.bar(days, counts, color=colors, edgecolor="white")
     ax.set_xticks(days)
@@ -295,7 +304,7 @@ def generate_day_of_week_graph(months: list[dict], graphs_dir: Path) -> None:
     ax.set_title("Listening Activity by Day of Week")
 
     max_count = max(counts)
-    for bar, count in zip(bars, counts):
+    for bar, count in zip(bars, counts, strict=True):
         ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + max_count * 0.01,
                 f"{count}", ha="center", fontsize=9)
 
@@ -314,7 +323,7 @@ def generate_hour_of_day_graph(months: list[dict], graphs_dir: Path) -> None:
     fig, ax = plt.subplots(figsize=(12, 6))
     hours = list(range(24))
     counts = [hour_counts[h] for h in hours]
-    colors = plt.cm.plasma(np.linspace(0.2, 0.8, 24))
+    colors = _get_colormap("plasma", 24)
 
     ax.bar(hours, counts, color=colors, edgecolor="white", width=0.8)
     ax.set_xticks(hours)
@@ -345,7 +354,7 @@ def generate_dashboard(months: list[dict], graphs_dir: Path, data: dict) -> None
         f"Total Scrobbles: {total_scrobbles}",
         f"Unique Artists: {unique_artists}",
         f"Unique Tracks: {unique_tracks}",
-        f"",
+        "",
         f"Avg Scrobbles/Month: {data['avg_size']:.1f}",
         f"Median: {data['median_size']:.1f}",
         f"Std Deviation: {data['std_size']:.1f}",
@@ -353,7 +362,7 @@ def generate_dashboard(months: list[dict], graphs_dir: Path, data: dict) -> None
     ]
     ax1.text(0.05, 0.9, "\n".join(stats_lines), transform=ax1.transAxes,
              fontsize=11, verticalalignment="top", family="monospace",
-             bbox=dict(boxstyle="round,pad=0.5", facecolor="#ecf0f1", edgecolor="#bdc3c7"))
+             bbox={"boxstyle": "round,pad=0.5", "facecolor": "#ecf0f1", "edgecolor": "#bdc3c7"})
 
     # Yearly summary table
     ax2 = fig.add_subplot(gs[0, 1:])
@@ -368,7 +377,7 @@ def generate_dashboard(months: list[dict], graphs_dir: Path, data: dict) -> None
             if m["year"] == year:
                 for mood, count in m.get("mood_distribution", {}).items():
                     year_moods[mood] += count
-        top_mood = max(year_moods, key=year_moods.get) if year_moods else "N/A"
+        top_mood = max(year_moods, key=lambda k: year_moods[k]) if year_moods else "N/A"
 
         yearly_summary.append({
             "year": year,
@@ -416,10 +425,11 @@ def generate_dashboard(months: list[dict], graphs_dir: Path, data: dict) -> None
 
     if overall_moods:
         sorted_moods = sorted(overall_moods.items(), key=lambda x: -x[1])
-        mood_names, mood_counts = zip(*sorted_moods)
+        mood_names, mood_counts = zip(*sorted_moods, strict=True)
         mood_colors_list = [MOOD_COLORS.get(m, "#95a5a6") for m in mood_names]
-        wedges, texts, autotexts = ax3.pie(mood_counts, labels=None, autopct="%1.1f%%",
-                                            colors=mood_colors_list, pctdistance=0.75)
+        pie_result = ax3.pie(mood_counts, labels=None, autopct="%1.1f%%",
+                             colors=mood_colors_list, pctdistance=0.75)
+        wedges = pie_result[0]
         ax3.set_title("Overall Mood Distribution", fontsize=12, fontweight="bold")
         ax3.legend(wedges, [m.capitalize() for m in mood_names],
                    loc="center left", bbox_to_anchor=(-0.3, 0.5), fontsize=8)
@@ -512,7 +522,7 @@ def generate_graphs(months: list[dict], options: GraphOptions | None = None) -> 
     data = _prepare_graph_data(months)
 
     # Map options to generator functions
-    graph_generators = [
+    graph_generators: list[tuple[bool, Callable[..., None], tuple[Any, ...]]] = [
         (options.activity, generate_activity_graph, (months, graphs_dir, data)),
         (options.mood_trends, generate_mood_trends_graph, (months, graphs_dir, data)),
         (options.genres_by_year, generate_genres_by_year_graph, (months, graphs_dir)),

@@ -4,17 +4,16 @@ Last.fm API interaction functions.
 
 import time
 from datetime import datetime, timezone
-from typing import Optional
 
 import requests
 
-from .config import LASTFM_API_URL, SCROBBLE_CACHE_FILE
 from .cache import load_json_cache, save_json_cache
+from .config import LASTFM_API_URL, SCROBBLE_CACHE_FILE
 
 __all__ = ["fetch_scrobbles", "fetch_artist_genres"]
 
-# Reusable session for connection pooling 
-_session: Optional[requests.Session] = None
+# Reusable session for connection pooling
+_session: requests.Session | None = None
 
 
 def _get_session() -> requests.Session:
@@ -26,7 +25,7 @@ def _get_session() -> requests.Session:
     return _session
 
 
-def _parse_track(track: dict) -> Optional[dict]:
+def _parse_track(track: dict) -> dict | None:
     """Parse a track from API response into a scrobble dict."""
     # Skip currently playing tracks it's not a scrobble yet!
     if "@attr" in track and track["@attr"].get("nowplaying") == "true":
@@ -58,7 +57,7 @@ def _parse_track(track: dict) -> Optional[dict]:
 def fetch_scrobbles(
     username: str,
     api_key: str,
-    from_date: Optional[datetime] = None,
+    from_date: datetime | None = None,
     use_cache: bool = True,
     max_retries: int = 5,
     base_delay: int = 10
@@ -90,7 +89,8 @@ def fetch_scrobbles(
             # Check if complete cache < 1 hour old
             if cache.get("complete") and time.time() - cache.get("last_fetch", 0) < 3600:
                 print(f"Using cached scrobbles ({len(cache['scrobbles'])} tracks)")
-                return cache["scrobbles"]
+                cached_scrobbles: list[dict] = cache["scrobbles"]
+                return cached_scrobbles
 
             # Check if incomplete fetch to resume
             if not cache.get("complete") and cache.get("scrobbles"):
@@ -142,7 +142,7 @@ def fetch_scrobbles(
             if not tracks:
                 break
 
-            # Handle single track responses 
+            # Handle single track responses
             if isinstance(tracks, dict):
                 tracks = [tracks]
 
@@ -247,7 +247,8 @@ def fetch_artist_genres(
     cache_key = artist_name.lower()
 
     if cache_key in cache:
-        return cache[cache_key]
+        cached_genres: list[str] = cache[cache_key]
+        return cached_genres
 
     for attempt in range(max_retries):
         try:

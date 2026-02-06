@@ -4,7 +4,6 @@ Report generation functions for scrobble analysis.
 
 import csv
 from collections import defaultdict
-from pathlib import Path
 
 from .config import OUTPUT_DIR, WINDOW_SIZE
 
@@ -116,7 +115,7 @@ def generate_report(months: list[dict]) -> list[dict]:
     print(f"Most active month: {max(sizes)} scrobbles")
     print(f"Average: {sum(sizes) / len(sizes):.1f} scrobbles/month")
 
-    # Activity visualization 
+    # Activity visualization
     print("\nScrobbles by month (scaled):")
     max_size = max(sizes)
     for month in months:
