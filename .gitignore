@@ -1,0 +1,13 @@
+*
+
+!.gitignore
+!code/
+!code/**
+
+code/**/*.pyc
+code/**/__pycache__/
+
+graphs/
+scrobble_analysis/
+
+*_cache.json
