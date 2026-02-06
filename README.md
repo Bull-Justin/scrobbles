@@ -7,7 +7,7 @@ Analyzes your Last.fm listening history by genre, mood, and patterns over time. 
 - Fetch and cache scrobble history from Last.fm
 - Analyze listening patterns by month, day of week, and hour
 - Categorize music by genre and mood
-- Generate visualizations (graphs and dashboards)
+- Generate visualizations (graphs and dashboards) 
 - Export data to CSV for further analysis
 
 ## Requirements
@@ -27,20 +27,19 @@ pip install -e ".[dev]"
 
 ## Usage
 
-After installation, you can run the analyzer using the `scrobble-analysis` command:
+Run the analyzer as a Python module:
 
 ```bash
-# Basic usage
-scrobble-analysis --username YOUR_USERNAME --api-key YOUR_API_KEY
+python -m scrobble_analysis --username YOUR_USERNAME --api-key YOUR_API_KEY
 
 # Short flags
-scrobble-analysis -u YOUR_USERNAME -k YOUR_API_KEY
+python -m scrobble_analysis -u YOUR_USERNAME -k YOUR_API_KEY
 ```
 
-Alternatively, run as a Python module:
+If your Python Scripts directory is in your PATH, you can also use the command directly:
 
 ```bash
-python -m scrobble_analysis -u YOUR_USERNAME -k YOUR_API_KEY
+scrobble-analysis -u YOUR_USERNAME -k YOUR_API_KEY
 ```
 
 ### Options
@@ -72,15 +71,19 @@ python -m scrobble_analysis -u YOUR_USERNAME -k YOUR_API_KEY
 
 ```bash
 # Analyze all scrobbles, generate all graphs
+python -m scrobble_analysis -u USERNAME -k YOUR_API_KEY
 scrobble-analysis -u USERNAME -k YOUR_API_KEY
 
 # Analyze from a specific date
+python -m scrobble_analysis -u USERNAME -k YOUR_API_KEY --since 2024-01-01
 scrobble-analysis -u USERNAME -k YOUR_API_KEY --since 2024-01-01
 
 # Only generate specific graphs
+python -m scrobble_analysis -u USERNAME -k YOUR_API_KEY --graphs dashboard,top_artists
 scrobble-analysis -u USERNAME -k YOUR_API_KEY --graphs dashboard,top_artists
 
 # Data only, no visualizations
+python -m scrobble_analysis -u USERNAME -k YOUR_API_KEY --no-graphs
 scrobble-analysis -u USERNAME -k YOUR_API_KEY --no-graphs
 ```
 

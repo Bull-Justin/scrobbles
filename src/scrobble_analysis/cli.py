@@ -27,15 +27,25 @@ from .visualization import GraphOptions, generate_graphs
 def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
-        prog="scrobble-analysis",
+        prog="python -m scrobble_analysis",
         description="Analyze your Last.fm scrobbles by genre, mood, and listening patterns.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
+Install:
+  pip install -e .
+
 Examples:
-  python -m %(prog)s -u USERNAME -k YOUR_API_KEY
-  python -m %(prog)s -u USERNAME -k YOUR_API_KEY --no-graphs
-  python -m %(prog)s -u USERNAME -k YOUR_API_KEY --graphs activity,dashboard,top_artists
-  python -m %(prog)s -u USERNAME -k YOUR_API_KEY --since 2025-06-23
+  %(prog)s -u USERNAME -k YOUR_API_KEY
+  scrobble-analysis -u USERNAME -k YOUR_API_KEY
+
+  %(prog)s -u USERNAME -k YOUR_API_KEY --no-graphs
+  scrobble-analysis -u USERNAME -k YOUR_API_KEY --no-graphs
+
+  %(prog)s -u USERNAME -k YOUR_API_KEY --graphs activity,dashboard,top_artists
+  scrobble-analysis -u USERNAME -k YOUR_API_KEY --graphs activity,dashboard,top_artists
+
+  %(prog)s -u USERNAME -k YOUR_API_KEY --since 2025-06-23
+  scrobble-analysis -u USERNAME -k YOUR_API_KEY --since 2025-06-23
         """,
     )
 
