@@ -909,13 +909,13 @@ def generate_month_detail_interactive(months: list[dict], graphs_dir: Path) -> N
     ax_moods = fig.add_subplot(gs[2, :])
 
     # Widget axes
-    ax_year_left = fig.add_axes([0.04, 0.93, 0.03, 0.04])
-    ax_year_label = fig.add_axes([0.07, 0.93, 0.06, 0.04])
-    ax_year_right = fig.add_axes([0.13, 0.93, 0.03, 0.04])
-    ax_month_left = fig.add_axes([0.20, 0.93, 0.03, 0.04])
-    ax_month_label = fig.add_axes([0.23, 0.93, 0.10, 0.04])
-    ax_month_right = fig.add_axes([0.33, 0.93, 0.03, 0.04])
-    ax_save = fig.add_axes([0.85, 0.93, 0.10, 0.04])
+    ax_year_left = fig.add_axes((0.04, 0.93, 0.03, 0.04))
+    ax_year_label = fig.add_axes((0.07, 0.93, 0.06, 0.04))
+    ax_year_right = fig.add_axes((0.13, 0.93, 0.03, 0.04))
+    ax_month_left = fig.add_axes((0.20, 0.93, 0.03, 0.04))
+    ax_month_label = fig.add_axes((0.23, 0.93, 0.10, 0.04))
+    ax_month_right = fig.add_axes((0.33, 0.93, 0.03, 0.04))
+    ax_save = fig.add_axes((0.85, 0.93, 0.10, 0.04))
 
     # Create buttons
     btn_year_left = Button(ax_year_left, "<")
