@@ -21,7 +21,7 @@ from .config import (
     WINDOW_SIZE,
 )
 from .reporting import export_to_csv, generate_report
-from .visualization import GraphOptions, generate_graphs
+from .visualization import GraphOptions, generate_graphs, generate_month_detail_interactive
 
 __all__ = [
     # API
@@ -47,4 +47,5 @@ __all__ = [
     # Visualization
     "GraphOptions",
     "generate_graphs",
+    "generate_month_detail_interactive",
 ]

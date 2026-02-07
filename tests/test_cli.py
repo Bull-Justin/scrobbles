@@ -33,11 +33,11 @@ class TestParseDate:
 
 
 class TestParseGraphOptions:
-    def _make_args(self, no_graphs=False, graphs=None):
+    def _make_args(self, no_graphs=False, graphs=None, month_detail=False):
         """Helper to create a mock args namespace."""
         from argparse import Namespace
 
-        return Namespace(no_graphs=no_graphs, graphs=graphs)
+        return Namespace(no_graphs=no_graphs, graphs=graphs, month_detail=month_detail)
 
     def test_no_graphs_disables_all(self):
         args = self._make_args(no_graphs=True)
@@ -102,3 +102,30 @@ class TestParseGraphOptions:
         assert result.day_of_week
         assert result.hour_of_day
         assert result.dashboard
+
+    def test_default_does_not_enable_month_detail(self):
+        args = self._make_args()
+        result = parse_graph_options(args)
+
+        assert result.month_detail is False
+
+    def test_month_detail_standalone_flag(self):
+        args = self._make_args(month_detail=True)
+        result = parse_graph_options(args)
+
+        assert result.month_detail is True
+        assert result.activity is True
+
+    def test_month_detail_via_graphs_flag(self):
+        args = self._make_args(graphs="month_detail")
+        result = parse_graph_options(args)
+
+        assert result.month_detail is True
+        assert result.activity is False
+
+    def test_no_graphs_with_month_detail(self):
+        args = self._make_args(no_graphs=True, month_detail=True)
+        result = parse_graph_options(args)
+
+        assert result.month_detail is True
+        assert result.activity is False

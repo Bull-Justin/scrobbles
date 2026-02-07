@@ -78,7 +78,14 @@ Examples:
         help="Comma-separated list of graphs to generate. "
         "Options: activity, mood_trends, genres_by_year, "
         "genres_overall, mood_timeline, top_artists, "
-        "day_of_week, hour_of_day, dashboard",
+        "day_of_week, hour_of_day, dashboard, month_detail",
+    )
+
+    # Interactive graphs
+    parser.add_argument(
+        "--month-detail",
+        action="store_true",
+        help="Open interactive month detail explorer (genres and moods by week)",
     )
 
     # Output options
@@ -111,8 +118,12 @@ def get_credentials(args):
 
 def parse_graph_options(args) -> GraphOptions:
     """Parse graph options from arguments."""
+    month_detail = getattr(args, "month_detail", False)
+
     if args.no_graphs:
-        return GraphOptions.none_enabled()
+        options = GraphOptions.none_enabled()
+        options.month_detail = month_detail
+        return options
 
     if args.graphs:
         # Start with all disabled
@@ -129,6 +140,7 @@ def parse_graph_options(args) -> GraphOptions:
             "day_of_week": "day_of_week",
             "hour_of_day": "hour_of_day",
             "dashboard": "dashboard",
+            "month_detail": "month_detail",
         }
 
         for graph in requested:
@@ -137,10 +149,16 @@ def parse_graph_options(args) -> GraphOptions:
             else:
                 print(f"Warning: Unknown graph type '{graph}', skipping")
 
+        # Also check the standalone flag
+        if month_detail:
+            options.month_detail = True
         return options
 
-    # Default: all enabled
-    return GraphOptions.all_enabled()
+    # Default: all batch graphs enabled
+    options = GraphOptions.all_enabled()
+    if month_detail:
+        options.month_detail = True
+    return options
 
 
 def parse_date(date_str: str):

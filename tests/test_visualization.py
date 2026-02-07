@@ -1,22 +1,26 @@
-"""Tests for visualization.py - GraphOptions and data preparation."""
+"""Tests for visualization.py - GraphOptions, data preparation, and week grouping."""
 
 from dataclasses import fields
 
-from scrobble_analysis.visualization import GraphOptions, _prepare_graph_data
+from scrobble_analysis.visualization import GraphOptions, _group_tracks_by_week, _prepare_graph_data
 
 
 class TestGraphOptions:
-    def test_defaults_all_enabled(self):
+    def test_defaults_all_enabled_except_interactive(self):
         options = GraphOptions()
 
         for field in fields(options):
-            assert getattr(options, field.name) is True
+            if field.name == "month_detail":
+                assert getattr(options, field.name) is False
+            else:
+                assert getattr(options, field.name) is True
 
     def test_all_enabled_classmethod(self):
         options = GraphOptions.all_enabled()
 
         assert options.activity is True
         assert options.dashboard is True
+        assert options.month_detail is False
         assert options.any_enabled() is True
 
     def test_none_enabled_classmethod(self):
@@ -46,8 +50,16 @@ class TestGraphOptions:
         assert options.any_enabled() is True
 
     def test_field_count(self):
-        # all 9 graph options
-        assert len(fields(GraphOptions)) == 9
+        # 9 batch graph options + 1 interactive (month_detail)
+        assert len(fields(GraphOptions)) == 10
+
+    def test_month_detail_opt_in(self):
+        options = GraphOptions.all_enabled()
+        assert options.month_detail is False
+
+        options.month_detail = True
+        assert options.month_detail is True
+        assert options.any_enabled() is True
 
 
 class TestPrepareGraphData:
@@ -94,3 +106,36 @@ class TestPrepareGraphData:
 
         assert data["yearly_avgs"][2023] == 2.0
         assert data["yearly_avgs"][2024] == 3.0
+
+
+class TestGroupTracksByWeek:
+    def test_groups_by_week_of_month(self, analyzed_months):
+        # Dec 2023: 2 tracks on Dec 31 -> week 5 (day 31, idx = (31-1)//7 = 4)
+        weeks = _group_tracks_by_week(analyzed_months[0])
+        assert len(weeks) == 1
+        assert weeks[0]["total"] == 2
+
+    def test_jan_tracks_in_week_1(self, analyzed_months):
+        # Jan 2024: 3 tracks on Jan 1-2 -> week 1 (days 1-2, idx = 0)
+        weeks = _group_tracks_by_week(analyzed_months[1])
+        assert len(weeks) == 1
+        assert weeks[0]["total"] == 3
+
+    def test_genre_aggregation(self, analyzed_months):
+        weeks = _group_tracks_by_week(analyzed_months[1])
+        assert "singer-songwriter" in weeks[0]["genre_counts"]
+
+    def test_mood_aggregation(self, analyzed_months):
+        weeks = _group_tracks_by_week(analyzed_months[1])
+        assert "introspective" in weeks[0]["mood_counts"]
+        assert weeks[0]["mood_counts"]["introspective"] == 3
+
+    def test_empty_month(self):
+        empty = {"year": 2024, "month": 6, "tracks": [], "size": 0}
+        weeks = _group_tracks_by_week(empty)
+        assert weeks == []
+
+    def test_week_label_format(self, analyzed_months):
+        weeks = _group_tracks_by_week(analyzed_months[1])
+        assert weeks[0]["week_label"].startswith("Week")
+        assert "Jan" in weeks[0]["week_label"]
