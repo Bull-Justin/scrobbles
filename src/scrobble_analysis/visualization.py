@@ -458,26 +458,62 @@ def generate_day_of_week_graph(months: list[dict], graphs_dir: Path) -> None:
     _save_figure(graphs_dir, "day_of_week.png")
 
 
+_TIME_OF_DAY_PERIODS: list[tuple[str, range, str]] = [
+    ("Night", range(0, 6), "#2c3e50"),
+    ("Morning", range(6, 12), "#f39c12"),
+    ("Afternoon", range(12, 18), "#e74c3c"),
+    ("Evening", range(18, 24), "#8e44ad"),
+]
+
+
 def generate_hour_of_day_graph(months: list[dict], graphs_dir: Path) -> None:
-    """Generate listening by hour of day graph."""
-    hour_counts: dict[int, int] = defaultdict(int)
+    """Generate listening by time of day graph, grouped into periods."""
+    period_counts: dict[str, int] = {}
+    period_colors: dict[str, str] = {}
+    for label, _hours, color in _TIME_OF_DAY_PERIODS:
+        period_counts[label] = 0
+        period_colors[label] = color
 
     for m in months:
         for t in m["tracks"]:
             dt = datetime.fromtimestamp(t["timestamp"], tz=timezone.utc)
-            hour_counts[dt.hour] += 1
+            for label, hours, _ in _TIME_OF_DAY_PERIODS:
+                if dt.hour in hours:
+                    period_counts[label] += 1
+                    break
 
-    fig, ax = plt.subplots(figsize=(12, 6))
-    hours = list(range(24))
-    counts = [hour_counts[h] for h in hours]
-    colors = _get_colormap("plasma", 24)
+    fig, ax = plt.subplots(figsize=(10, 6))
+    labels = list(period_counts.keys())
+    counts = list(period_counts.values())
+    colors_list = [period_colors[name] for name in labels]
 
-    ax.bar(hours, counts, color=colors, edgecolor="white", width=0.8)
-    ax.set_xticks(hours)
-    ax.set_xticklabels([f"{h:02d}" for h in hours])
-    ax.set_xlabel("Hour of Day (UTC)")
+    bars = ax.bar(labels, counts, color=colors_list, edgecolor="white", width=0.6)
     ax.set_ylabel("Total Scrobbles")
-    ax.set_title("Listening Activity by Hour of Day")
+    ax.set_title("Listening Activity by Time of Day (UTC)")
+
+    max_count = max(counts) if counts else 1
+    for bar, count in zip(bars, counts, strict=True):
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            bar.get_height() + max_count * 0.01,
+            f"{count}",
+            ha="center",
+            fontsize=10,
+            fontweight="bold",
+        )
+
+    # Add hour ranges as subtitle labels
+    for bar, (_label, hours, _) in zip(bars, _TIME_OF_DAY_PERIODS, strict=True):
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            -max_count * 0.04,
+            f"({hours.start:02d}:00\u2013{hours.stop - 1:02d}:59)",
+            ha="center",
+            fontsize=8,
+            color="#7f8c8d",
+        )
+
+    ax.set_ylim(0, max_count * 1.12)
 
     _save_figure(graphs_dir, "hour_of_day.png")
 
