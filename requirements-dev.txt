@@ -10,3 +10,6 @@ types-requests>=2.31.0
 
 # Security scanning
 bandit>=1.7.0
+
+# Testing
+pytest>=8.0.0

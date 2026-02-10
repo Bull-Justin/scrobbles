@@ -2,6 +2,7 @@
 Visualization functions for generating analysis graphs.
 """
 
+import calendar
 from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass, fields
@@ -13,11 +14,12 @@ import matplotlib
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.widgets import Button
 from numpy.typing import NDArray
 
 from .config import MOOD_COLORS, OUTPUT_DIR
 
-__all__ = ["GraphOptions", "generate_graphs"]
+__all__ = ["GraphOptions", "generate_graphs", "generate_month_detail_interactive"]
 
 
 def _get_colormap(name: str, n: int) -> NDArray[np.floating[Any]]:
@@ -43,6 +45,22 @@ MONTH_NAMES: tuple[str, ...] = (
     "Dec",
 )
 
+FULL_MONTH_NAMES: tuple[str, ...] = (
+    "",
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+)
+
 
 @dataclass
 class GraphOptions:
@@ -57,11 +75,12 @@ class GraphOptions:
     day_of_week: bool = True
     hour_of_day: bool = True
     dashboard: bool = True
+    month_detail: bool = False
 
     @classmethod
     def all_enabled(cls) -> "GraphOptions":
-        """Create options with all graphs enabled."""
-        return cls()
+        """Create options with all batch graphs enabled (interactive graphs are opt-in)."""
+        return cls(month_detail=False)
 
     @classmethod
     def none_enabled(cls) -> "GraphOptions":
@@ -95,6 +114,48 @@ def _prepare_graph_data(months: list[dict]) -> dict[str, Any]:
         "yearly_stats": dict(yearly_stats),
         "yearly_avgs": {year: float(np.mean(vals)) for year, vals in yearly_stats.items()},
     }
+
+
+def _group_tracks_by_week(month_data: dict) -> list[dict]:
+    """Group a single month's tracks into week-of-month buckets.
+
+    Returns a list of dicts (one per non-empty week) with keys:
+        week_label, tracks, genre_counts, mood_counts, total
+    """
+    year, month = month_data["year"], month_data["month"]
+    _, days_in_month = calendar.monthrange(year, month)
+    short_name = MONTH_NAMES[month]
+
+    buckets: dict[int, list[dict]] = defaultdict(list)
+    for track in month_data["tracks"]:
+        dt = datetime.fromtimestamp(track["timestamp"], tz=timezone.utc)
+        week_idx = (dt.day - 1) // 7
+        buckets[week_idx].append(track)
+
+    weeks: list[dict] = []
+    for idx in sorted(buckets):
+        tracks = buckets[idx]
+        start_day = idx * 7 + 1
+        end_day = min(start_day + 6, days_in_month)
+
+        genre_counts: dict[str, int] = defaultdict(int)
+        mood_counts: dict[str, int] = defaultdict(int)
+        for t in tracks:
+            for genre in t.get("genres", [])[:3]:
+                genre_counts[genre] += 1
+            mood_counts[t.get("mood", "neutral")] += 1
+
+        weeks.append(
+            {
+                "week_label": f"Week {idx + 1} ({short_name} {start_day}-{end_day})",
+                "tracks": tracks,
+                "genre_counts": dict(genre_counts),
+                "mood_counts": dict(mood_counts),
+                "total": len(tracks),
+            }
+        )
+
+    return weeks
 
 
 # I actually forget the best way to structure this but whatever, I haven't done this in 2 years. Some of the numbers are just vibes as well
@@ -375,7 +436,8 @@ def generate_day_of_week_graph(months: list[dict], graphs_dir: Path) -> None:
     fig, ax = plt.subplots(figsize=(10, 6))
     days = list(range(7))
     counts = [day_counts[d] for d in days]
-    colors = _get_colormap("Blues", 7)
+    cmap = matplotlib.colormaps["Blues"]
+    colors = np.array(cmap(np.linspace(0.3, 1.0, 7)))
 
     bars = ax.bar(days, counts, color=colors, edgecolor="white")
     ax.set_xticks(days)
@@ -396,26 +458,62 @@ def generate_day_of_week_graph(months: list[dict], graphs_dir: Path) -> None:
     _save_figure(graphs_dir, "day_of_week.png")
 
 
+_TIME_OF_DAY_PERIODS: list[tuple[str, range, str]] = [
+    ("Night", range(0, 6), "#2c3e50"),
+    ("Morning", range(6, 12), "#f39c12"),
+    ("Afternoon", range(12, 18), "#e74c3c"),
+    ("Evening", range(18, 24), "#8e44ad"),
+]
+
+
 def generate_hour_of_day_graph(months: list[dict], graphs_dir: Path) -> None:
-    """Generate listening by hour of day graph."""
-    hour_counts: dict[int, int] = defaultdict(int)
+    """Generate listening by time of day graph, grouped into periods."""
+    period_counts: dict[str, int] = {}
+    period_colors: dict[str, str] = {}
+    for label, _hours, color in _TIME_OF_DAY_PERIODS:
+        period_counts[label] = 0
+        period_colors[label] = color
 
     for m in months:
         for t in m["tracks"]:
             dt = datetime.fromtimestamp(t["timestamp"], tz=timezone.utc)
-            hour_counts[dt.hour] += 1
+            for label, hours, _ in _TIME_OF_DAY_PERIODS:
+                if dt.hour in hours:
+                    period_counts[label] += 1
+                    break
 
-    fig, ax = plt.subplots(figsize=(12, 6))
-    hours = list(range(24))
-    counts = [hour_counts[h] for h in hours]
-    colors = _get_colormap("plasma", 24)
+    fig, ax = plt.subplots(figsize=(10, 6))
+    labels = list(period_counts.keys())
+    counts = list(period_counts.values())
+    colors_list = [period_colors[name] for name in labels]
 
-    ax.bar(hours, counts, color=colors, edgecolor="white", width=0.8)
-    ax.set_xticks(hours)
-    ax.set_xticklabels([f"{h:02d}" for h in hours])
-    ax.set_xlabel("Hour of Day (UTC)")
+    bars = ax.bar(labels, counts, color=colors_list, edgecolor="white", width=0.6)
     ax.set_ylabel("Total Scrobbles")
-    ax.set_title("Listening Activity by Hour of Day")
+    ax.set_title("Listening Activity by Time of Day (UTC)")
+
+    max_count = max(counts) if counts else 1
+    for bar, count in zip(bars, counts, strict=True):
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            bar.get_height() + max_count * 0.01,
+            f"{count}",
+            ha="center",
+            fontsize=10,
+            fontweight="bold",
+        )
+
+    # Add hour ranges as subtitle labels
+    for bar, (_label, hours, _) in zip(bars, _TIME_OF_DAY_PERIODS, strict=True):
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            -max_count * 0.04,
+            f"({hours.start:02d}:00\u2013{hours.stop - 1:02d}:59)",
+            ha="center",
+            fontsize=8,
+            color="#7f8c8d",
+        )
+
+    ax.set_ylim(0, max_count * 1.12)
 
     _save_figure(graphs_dir, "hour_of_day.png")
 
@@ -662,6 +760,294 @@ def generate_dashboard(months: list[dict], graphs_dir: Path, data: dict) -> None
     print("  Saved: summary_dashboard.png")
 
 
+def _draw_month_summary(ax: matplotlib.axes.Axes, month_data: dict, weeks: list[dict]) -> None:
+    """Draw the monthly summary text panel."""
+    ax.axis("off")
+    total = month_data["size"]
+    unique_artists = len({t["artist"] for t in month_data["tracks"]})
+    unique_tracks = len({(t["artist"], t["track"]) for t in month_data["tracks"]})
+    top_genres = list(month_data.get("genre_distribution", {}).keys())[:5]
+    primary_mood = month_data.get("primary_mood", "unknown")
+
+    busiest = max(weeks, key=lambda w: w["total"]) if weeks else None
+    quietest = min(weeks, key=lambda w: w["total"]) if weeks else None
+
+    lines = [
+        f"Total Scrobbles: {total}",
+        f"Unique Artists:  {unique_artists}",
+        f"Unique Tracks:   {unique_tracks}",
+        f"Active Weeks:    {len(weeks)}",
+        f"Primary Mood:    {primary_mood.capitalize()}",
+        "",
+        f"Top Genres: {', '.join(top_genres[:3]) if top_genres else 'N/A'}",
+        "",
+    ]
+    if busiest:
+        lines.append(f"Most Active:  {busiest['week_label']} ({busiest['total']})")
+    if quietest:
+        lines.append(f"Least Active: {quietest['week_label']} ({quietest['total']})")
+    lines.append(f"\nAvg Scrobbles/Week: {total / max(len(weeks), 1):.1f}")
+
+    ax.text(
+        0.05,
+        0.92,
+        "\n".join(lines),
+        transform=ax.transAxes,
+        fontsize=10,
+        verticalalignment="top",
+        family="monospace",
+        bbox={
+            "boxstyle": "round,pad=0.5",
+            "facecolor": "#ecf0f1",
+            "edgecolor": "#bdc3c7",
+        },
+    )
+    ax.set_title("Monthly Summary", fontsize=12, fontweight="bold", loc="left")
+
+
+def _draw_month_mood_pie(ax: matplotlib.axes.Axes, month_data: dict) -> None:
+    """Draw the mood distribution pie chart for a single month."""
+    mood_dist = month_data.get("mood_distribution", {})
+    if not mood_dist:
+        ax.axis("off")
+        ax.text(0.5, 0.5, "No mood data", ha="center", va="center")
+        return
+
+    sorted_moods = sorted(mood_dist.items(), key=lambda x: -x[1])
+    names, counts = zip(*sorted_moods, strict=True)
+    colors = [MOOD_COLORS.get(m, "#95a5a6") for m in names]
+    ax.pie(
+        counts,
+        labels=[n.capitalize() for n in names],
+        autopct="%1.1f%%",
+        colors=colors,
+        pctdistance=0.8,
+    )
+    ax.set_title("Mood Breakdown", fontsize=12, fontweight="bold")
+
+
+def _draw_weekly_genres(ax: matplotlib.axes.Axes, weeks: list[dict]) -> None:
+    """Draw grouped bar chart of top genres by week."""
+    combined: dict[str, int] = defaultdict(int)
+    for w in weeks:
+        for genre, count in w["genre_counts"].items():
+            combined[genre] += count
+
+    top_n = 8
+    top_genre_names = [g for g, _ in sorted(combined.items(), key=lambda x: -x[1])[:top_n]]
+
+    if not top_genre_names or not weeks:
+        ax.axis("off")
+        ax.text(0.5, 0.5, "No genre data", ha="center", va="center")
+        return
+
+    n_weeks = len(weeks)
+    n_genres = len(top_genre_names)
+    x = np.arange(n_weeks)
+    width = 0.8 / n_genres
+    genre_colors = _get_colormap("Set3", max(n_genres, 3))
+
+    for i, genre in enumerate(top_genre_names):
+        values = [w["genre_counts"].get(genre, 0) for w in weeks]
+        offset = (i - n_genres / 2 + 0.5) * width
+        ax.bar(
+            x + offset,
+            values,
+            width,
+            label=genre,
+            color=genre_colors[i],
+            edgecolor="white",
+            linewidth=0.3,
+        )
+
+    ax.set_xticks(x)
+    ax.set_xticklabels([w["week_label"] for w in weeks], fontsize=9)
+    ax.set_ylabel("Track Count")
+    ax.set_title("Top Genres by Week", fontsize=12, fontweight="bold")
+    ax.legend(loc="upper right", fontsize=8, ncol=2)
+
+
+def _draw_weekly_moods(ax: matplotlib.axes.Axes, weeks: list[dict]) -> None:
+    """Draw stacked bar chart of mood distribution by week."""
+    if not weeks:
+        ax.axis("off")
+        return
+
+    all_moods = list(MOOD_COLORS.keys())
+    n_weeks = len(weeks)
+    x = np.arange(n_weeks)
+    bottom = np.zeros(n_weeks)
+
+    for mood in all_moods:
+        values = []
+        for w in weeks:
+            total = w["total"] or 1
+            values.append(w["mood_counts"].get(mood, 0) / total * 100)
+        values_arr = np.array(values)
+        if values_arr.sum() > 0:
+            ax.bar(
+                x,
+                values_arr,
+                bottom=bottom,
+                label=mood.capitalize(),
+                color=MOOD_COLORS[mood],
+                edgecolor="white",
+                linewidth=0.3,
+            )
+        bottom += values_arr
+
+    ax.set_xticks(x)
+    ax.set_xticklabels([w["week_label"] for w in weeks], fontsize=9)
+    ax.set_ylabel("Percentage")
+    ax.set_ylim(0, 100)
+    ax.set_title("Mood Distribution by Week", fontsize=12, fontweight="bold")
+    ax.legend(loc="upper left", bbox_to_anchor=(1.0, 1.0), fontsize=8)
+
+
+def generate_month_detail_interactive(months: list[dict], graphs_dir: Path) -> None:
+    """Launch interactive month detail explorer window.
+
+    Opens a matplotlib figure with year/month cycling buttons. The user can
+    navigate between months and see weekly genre and mood breakdowns.
+    """
+    backend = matplotlib.get_backend()
+    if backend.lower() == "agg":
+        print(
+            "Warning: Non-interactive matplotlib backend detected. "
+            "Month detail requires a display. Skipping."
+        )
+        return
+
+    # Build lookup structures
+    month_lookup: dict[tuple[int, int], dict] = {(m["year"], m["month"]): m for m in months}
+    available_years = sorted({m["year"] for m in months})
+    months_by_year: dict[int, list[int]] = defaultdict(list)
+    for m in months:
+        if m["month"] not in months_by_year[m["year"]]:
+            months_by_year[m["year"]].append(m["month"])
+    for year in months_by_year:
+        months_by_year[year].sort()
+
+    # State: default to most recent month
+    state = {
+        "year_idx": len(available_years) - 1,
+        "month_idx": len(months_by_year[available_years[-1]]) - 1,
+    }
+
+    # Create figure and layout
+    fig = plt.figure(figsize=(18, 11))
+    fig.subplots_adjust(top=0.88, bottom=0.06, left=0.06, right=0.92, hspace=0.35)
+    gs = fig.add_gridspec(3, 2, height_ratios=[1, 1.3, 1.3], width_ratios=[1.2, 0.8])
+
+    ax_summary = fig.add_subplot(gs[0, 0])
+    ax_mood_pie = fig.add_subplot(gs[0, 1])
+    ax_genres = fig.add_subplot(gs[1, :])
+    ax_moods = fig.add_subplot(gs[2, :])
+
+    # Widget axes
+    ax_year_left = fig.add_axes((0.04, 0.93, 0.03, 0.04))
+    ax_year_label = fig.add_axes((0.07, 0.93, 0.06, 0.04))
+    ax_year_right = fig.add_axes((0.13, 0.93, 0.03, 0.04))
+    ax_month_left = fig.add_axes((0.20, 0.93, 0.03, 0.04))
+    ax_month_label = fig.add_axes((0.23, 0.93, 0.10, 0.04))
+    ax_month_right = fig.add_axes((0.33, 0.93, 0.03, 0.04))
+    ax_save = fig.add_axes((0.85, 0.93, 0.10, 0.04))
+
+    # Create buttons
+    btn_year_left = Button(ax_year_left, "<")
+    btn_year_right = Button(ax_year_right, ">")
+    btn_month_left = Button(ax_month_left, "<")
+    btn_month_right = Button(ax_month_right, ">")
+    btn_save = Button(ax_save, "Save PNG")
+
+    # Label axes (static text display)
+    ax_year_label.axis("off")
+    ax_month_label.axis("off")
+    year_label_text = ax_year_label.text(
+        0.5, 0.5, "", ha="center", va="center", fontsize=12, fontweight="bold"
+    )
+    month_label_text = ax_month_label.text(
+        0.5, 0.5, "", ha="center", va="center", fontsize=12, fontweight="bold"
+    )
+
+    def _update_display() -> None:
+        for ax in [ax_summary, ax_mood_pie, ax_genres, ax_moods]:
+            ax.clear()
+
+        year = available_years[state["year_idx"]]
+        month_list = months_by_year[year]
+        month_num = month_list[state["month_idx"]]
+        month_data = month_lookup.get((year, month_num))
+
+        year_label_text.set_text(str(year))
+        month_label_text.set_text(FULL_MONTH_NAMES[month_num])
+
+        if month_data is None:
+            ax_summary.text(
+                0.5,
+                0.5,
+                "No data for selection",
+                ha="center",
+                va="center",
+                transform=ax_summary.transAxes,
+            )
+            fig.canvas.draw_idle()
+            return
+
+        weeks = _group_tracks_by_week(month_data)
+        _draw_month_summary(ax_summary, month_data, weeks)
+        _draw_month_mood_pie(ax_mood_pie, month_data)
+        _draw_weekly_genres(ax_genres, weeks)
+        _draw_weekly_moods(ax_moods, weeks)
+
+        fig.suptitle(
+            f"Month Detail: {FULL_MONTH_NAMES[month_num]} {year}",
+            fontsize=16,
+            fontweight="bold",
+            y=0.99,
+        )
+        fig.canvas.draw_idle()
+
+    def _on_year_left(_event: Any) -> None:
+        state["year_idx"] = max(0, state["year_idx"] - 1)
+        year = available_years[state["year_idx"]]
+        state["month_idx"] = min(state["month_idx"], len(months_by_year[year]) - 1)
+        _update_display()
+
+    def _on_year_right(_event: Any) -> None:
+        state["year_idx"] = min(len(available_years) - 1, state["year_idx"] + 1)
+        year = available_years[state["year_idx"]]
+        state["month_idx"] = min(state["month_idx"], len(months_by_year[year]) - 1)
+        _update_display()
+
+    def _on_month_left(_event: Any) -> None:
+        state["month_idx"] = max(0, state["month_idx"] - 1)
+        _update_display()
+
+    def _on_month_right(_event: Any) -> None:
+        year = available_years[state["year_idx"]]
+        max_idx = len(months_by_year[year]) - 1
+        state["month_idx"] = min(max_idx, state["month_idx"] + 1)
+        _update_display()
+
+    def _on_save(_event: Any) -> None:
+        year = available_years[state["year_idx"]]
+        month_num = months_by_year[year][state["month_idx"]]
+        filename = f"month_detail_{year}_{month_num:02d}.png"
+        fig.savefig(graphs_dir / filename, dpi=150, bbox_inches="tight")
+        print(f"  Saved: {filename}")
+
+    # Connect callbacks (must keep references to prevent garbage collection)
+    btn_year_left.on_clicked(_on_year_left)
+    btn_year_right.on_clicked(_on_year_right)
+    btn_month_left.on_clicked(_on_month_left)
+    btn_month_right.on_clicked(_on_month_right)
+    btn_save.on_clicked(_on_save)
+
+    _update_display()
+    plt.show()
+
+
 def generate_graphs(months: list[dict], options: GraphOptions | None = None) -> None:
     """
     Generate all visualizations based on options.
@@ -706,3 +1092,7 @@ def generate_graphs(months: list[dict], options: GraphOptions | None = None) -> 
             generator(*args)
 
     print(f"\nAll graphs saved to: {graphs_dir}")
+
+    # Interactive graphs run last since plt.show() blocks
+    if options.month_detail:
+        generate_month_detail_interactive(months, graphs_dir)
