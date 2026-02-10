@@ -1,4 +1,4 @@
-# Default: ignore everything, explicitly allow what we want
+# ignore everything
 *
 
 # Core files
@@ -45,3 +45,7 @@ env/
 # Tool caches
 .ruff_cache/
 .mypy_cache/
+
+# Docs (GitHub Pages)
+!docs/
+!docs/**
