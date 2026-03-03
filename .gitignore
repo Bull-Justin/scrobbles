@@ -26,7 +26,7 @@
 *.egg-info/
 
 # Output directories
-output/
+# output/
 
 # Cache files
 *_cache.json
@@ -46,6 +46,7 @@ env/
 .ruff_cache/
 .mypy_cache/
 
-# Docs (GitHub Pages)
-!docs/
-!docs/**
+# # Docs (GitHub Pages)
+# !docs/
+# !docs/**
+
